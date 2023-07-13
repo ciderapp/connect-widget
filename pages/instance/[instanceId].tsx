@@ -1,0 +1,207 @@
+import { useDatabase, useDatabaseObjectData } from 'reactfire';
+import { ref, onValue, off } from 'firebase/database';
+import { useEffect, useState } from 'react';
+import { Card, Loading, Progress } from '@nextui-org/react';
+import { useRouter } from 'next/router'
+
+export default function Widget() {
+    const router = useRouter();
+    const { instanceId } = router.query;
+
+    useEffect(() => {
+        console.log(router.query);
+    }, [router])
+
+    useEffect(() => {
+        console.log(instanceId);
+    }, [instanceId])
+
+    const database = useDatabase();
+    const dbRef = ref(database, `instances/${instanceId}`);
+    const ptRef = ref(database, `instances/${instanceId}/state/playbackTime`);
+
+    const [data, setData] = useState({
+        track: '',
+        isEnabled: true,
+        link: '',
+        currentPlaybackDuration: 0.0,
+        currentPlaybackTime: 0.0,
+        hideplaybackbar: false,
+        hidelogo: false,
+        color: '#1b1d20',
+    });
+
+    const { dbstatus, data: instance } = useDatabaseObjectData(dbRef);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        setData((prevData) => ({
+            ...prevData,
+            hideplaybackbar: params.get('hideplaybackbar') === 'true',
+            hidelogo: params.get('hidelogo') === 'true',
+            color: `#${params.get('color')}` || '#1b1d20',
+        }));
+    }, []);
+
+    useEffect(() => {
+        if (instance) {
+            setData((prevData) => ({
+                ...prevData,
+                track: instance?.nowPlaying?.attributes,
+                isEnabled: true,
+                link: instance?.link,
+                currentPlaybackDuration: instance.state?.playbackTime.currentPlaybackDuration,
+                currentPlaybackTime: instance.state?.playbackTime.currentPlaybackTime,
+            }));
+        }
+
+        document.body.style.backgroundColor = 'transparent';
+        document.documentElement.style.backgroundColor = 'transparent';
+        const App = document.getElementsByClassName('App');
+        document.body.style.display = 'flex';
+        document.body.style.justifyContent = 'center';
+
+        document
+            .querySelector('.listenTogetherName')
+            ?.style.setProperty(
+            'font-size',
+            instance?.nowPlaying?.attributes?.name.length > 16 ? 'smaller' : '20px',
+        );
+
+        console.log(instance);
+    }, [instance]);
+
+    const [playbackTime, setPlaybackTime] = useState(0);
+    const [trackDuration, setTrackDuration] = useState(0);
+    useEffect(() => {
+        const ptRefValue = onValue(ptRef, (snapshot) => {
+            const data = snapshot.val();
+            setTrackDuration(data.currentPlaybackDuration);
+            const playbackTime = instance?.link
+                ? data?.currentPlaybackTime
+                : new Date().getTime() - data.currentPlaybackDuration;
+            setPlaybackTime(playbackTime);
+        });
+        return () => {
+            off(ptRef, ptRefValue);
+        };
+    }, [ptRef, instance]);
+
+    if (dbstatus === 'loading') {
+        return <Loading color="white" type="gradient" size="sm" />;
+    }
+
+    return (
+        <Card
+            style={{
+                width: 350,
+                backgroundColor: data.color,
+                borderRadius: 15,
+            }}
+        >
+            {data.hidelogo ? null : (
+                <img
+                    style={{
+                        width: 20,
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        zIndex: 69420,
+                    }}
+                    src="https://raw.githubusercontent.com/ciderapp/cider.sh/main/assets/img/Cider-Logo.png"
+                    alt="icon"
+                />
+            )}
+            <div
+                style={{
+                    width: 70,
+                    height: 70,
+                }}
+            >
+                <img
+                    style={{
+                        width: 50,
+                        height: 50,
+                        position: 'absolute',
+                        left: 10,
+                        top: 10,
+                        borderRadius: 10,
+                    }}
+                    src={
+                        instance?.nowPlaying?.attributes?.artwork?.url
+                            ? instance?.nowPlaying?.attributes?.artwork.url.replace('{w}x{h}bb.jpg', '200x200bb.jpg')
+                            : 'https://raw.githubusercontent.com/ciderapp/cider.sh/main/assets/img/Cider-Logo.png'
+                    }
+                    alt="icon"
+                />
+            </div>
+            <div
+                style={{
+                    position: 'absolute',
+                    paddingLeft: 80,
+                    paddingTop: 10,
+                    height: 70,
+                    width: '100%',
+                    maxWidth: 350,
+                    overflow: 'hidden',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flexWrap: 'nowrap',
+                    justifyContent: 'center',
+                    alignItems: 'flex-start',
+                }}
+            >
+                <h2 className="listenTogetherName" style={{ margin: 'unset' }}>
+                    {instance?.nowPlaying?.attributes?.name
+                        ? instance?.nowPlaying?.attributes?.name
+                        : 'Not Listening to Anything'}
+                </h2>
+                {instance?.nowPlaying?.attributes?.artistName ? (
+                    <h4
+                        style={{
+                            fontSize: 16,
+                            color: '#ff2654',
+                            textTransform: 'uppercase',
+                            fontWeight: 600,
+                        }}
+                    >
+                        {instance?.nowPlaying?.attributes?.artistName}
+                    </h4>
+                ) : null}
+            </div>
+
+            {data.hideplaybackbar || !instance?.link ? null : (
+                <div style={{ top: '10', color: 'white' }}>
+                    <Progress
+                        color={'white'}
+                        status={'white'}
+                        style={{
+                            color: 'white',
+                            backgroundColor: 'rgba(255, 38, 84, 0.5)',
+                            marginLeft: '0px !important',
+                            height: '5px',
+                            bottom: 0,
+                            zIndex: 100,
+                        }}
+                        value={playbackTime}
+                        max={trackDuration}
+                    ></Progress>
+                </div>
+            )}
+
+            {instance?.link ? (
+                <div
+                    style={{
+                        background: '#0f1012',
+                        display: 'flex',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <h5 style={{ fontSize: 10, margin: 5 }}>
+                        Listen Along at {String(instance?.link).replace('https://', '')}
+                    </h5>
+                </div>
+            ) : null}
+        </Card>
+    );
+}
