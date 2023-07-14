@@ -1,10 +1,11 @@
 import { useDatabase, useDatabaseObjectData } from 'reactfire';
-import { ref, onValue, off } from 'firebase/database';
+import {ref, onValue, off, set} from 'firebase/database';
 import { useEffect, useState } from 'react';
 import { Card, Loading, Progress } from '@nextui-org/react';
 import { useRouter } from 'next/router'
 
 export default function Widget() {
+
     const router = useRouter();
     const { instanceId } = router.query;
 
@@ -34,6 +35,12 @@ export default function Widget() {
     const { dbstatus, data: instance } = useDatabaseObjectData(dbRef);
 
     useEffect(() => {
+        const remoteRef = ref(database, `instances/${instanceId}/remote/online`);
+        set(remoteRef, true);
+    })
+
+
+    useEffect(() => {
         const params = new URLSearchParams(window.location.search);
         setData((prevData) => ({
             ...prevData,
@@ -50,7 +57,7 @@ export default function Widget() {
                 track: instance?.nowPlaying?.attributes,
                 isEnabled: true,
                 link: instance?.link,
-                currentPlaybackDuration: instance.state?.playbackTime.currentPlaybackDuration,
+                currentPlaybackDuration: instance.nowPlaying?.duration,
                 currentPlaybackTime: instance.state?.playbackTime.currentPlaybackTime,
             }));
         }
@@ -61,12 +68,10 @@ export default function Widget() {
         document.body.style.display = 'flex';
         document.body.style.justifyContent = 'center';
 
-        document
-            .querySelector('.listenTogetherName')
-            ?.style.setProperty(
+
+        document.getElementById("listenTogetherName")?.style.setProperty(
             'font-size',
-            instance?.nowPlaying?.attributes?.name.length > 16 ? 'smaller' : '20px',
-        );
+        instance?.nowPlaying?.title.length > 16 ? 'smaller' : '20px');
 
         console.log(instance);
     }, [instance]);
@@ -74,18 +79,13 @@ export default function Widget() {
     const [playbackTime, setPlaybackTime] = useState(0);
     const [trackDuration, setTrackDuration] = useState(0);
     useEffect(() => {
-        const ptRefValue = onValue(ptRef, (snapshot) => {
-            const data = snapshot.val();
-            setTrackDuration(data.currentPlaybackDuration);
-            const playbackTime = instance?.link
-                ? data?.currentPlaybackTime
-                : new Date().getTime() - data.currentPlaybackDuration;
-            setPlaybackTime(playbackTime);
-        });
-        return () => {
-            off(ptRef, ptRefValue);
-        };
-    }, [ptRef, instance]);
+        setTrackDuration(instance?.nowPlaying?.duration);
+
+        setInterval(() => {
+            setPlaybackTime(instance?.state?.playbackTime.currentPlaybackTime);
+        }, 1000);
+
+    }, [instance]);
 
     if (dbstatus === 'loading') {
         return <Loading color="white" type="gradient" size="sm" />;
@@ -128,8 +128,8 @@ export default function Widget() {
                         borderRadius: 10,
                     }}
                     src={
-                        instance?.nowPlaying?.attributes?.artwork?.url
-                            ? instance?.nowPlaying?.attributes?.artwork.url.replace('{w}x{h}bb.jpg', '200x200bb.jpg')
+                        instance?.nowPlaying?.artworkURL
+                            ? instance?.nowPlaying?.artworkURL.replace('{w}x{h}bb.jpg', '200x200bb.jpg')
                             : 'https://raw.githubusercontent.com/ciderapp/cider.sh/main/assets/img/Cider-Logo.png'
                     }
                     alt="icon"
@@ -151,12 +151,12 @@ export default function Widget() {
                     alignItems: 'flex-start',
                 }}
             >
-                <h2 className="listenTogetherName" style={{ margin: 'unset' }}>
-                    {instance?.nowPlaying?.attributes?.name
-                        ? instance?.nowPlaying?.attributes?.name
+                <h2 id="listenTogetherName" style={{ margin: 'unset', color: "white" }} className={'text-white'}>
+                    {instance?.nowPlaying?.title
+                        ? instance?.nowPlaying?.title
                         : 'Not Listening to Anything'}
                 </h2>
-                {instance?.nowPlaying?.attributes?.artistName ? (
+                {instance?.nowPlaying?.artist ? (
                     <h4
                         style={{
                             fontSize: 16,
@@ -165,12 +165,12 @@ export default function Widget() {
                             fontWeight: 600,
                         }}
                     >
-                        {instance?.nowPlaying?.attributes?.artistName}
+                        {instance?.nowPlaying?.artist}
                     </h4>
                 ) : null}
             </div>
 
-            {data.hideplaybackbar || !instance?.link ? null : (
+            {data.hideplaybackbar ? null : (
                 <div style={{ top: '10', color: 'white' }}>
                     <Progress
                         color={'white'}
