@@ -37,6 +37,7 @@ export default function Widget() {
         color: '#1b1d20',
     });
 
+    // @ts-ignore
     const { dbstatus, data: instance } = useDatabaseObjectData(dbRef);
 
     useEffect(() => {
@@ -60,14 +61,21 @@ export default function Widget() {
             setData((prevData) => ({
                 ...prevData,
                 track: {
+                    // @ts-ignore
                     title: instance?.nowPlaying?.title,
+                    // @ts-ignore
                     artist: instance?.nowPlaying?.artist,
+                    // @ts-ignore
                     album: instance?.nowPlaying?.album,
+                    // @ts-ignore
                     artwork: instance?.nowPlaying?.artworkURL.replace('{w}x{h}bb.jpg', '200x200bb.jpg'),
                 },
                 isEnabled: true,
+                // @ts-ignore
                 link: instance?.link,
+                // @ts-ignore
                 currentPlaybackDuration: instance.nowPlaying?.duration,
+                // @ts-ignore
                 currentPlaybackTime: instance.state?.playbackTime.currentPlaybackTime,
             }));
         }
@@ -81,6 +89,7 @@ export default function Widget() {
 
         document.getElementById("listenTogetherName")?.style.setProperty(
             'font-size',
+            // @ts-ignore
         instance?.nowPlaying?.title.length > 16 ? 'smaller' : '20px');
 
         console.log(instance);
@@ -89,6 +98,7 @@ export default function Widget() {
     const [playbackTime, setPlaybackTime] = useState(0);
     const [trackDuration, setTrackDuration] = useState(0);
     useEffect(() => {
+        // @ts-ignore
         setTrackDuration(instance?.nowPlaying?.duration);
 
         setInterval(() => {
