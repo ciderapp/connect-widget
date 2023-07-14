@@ -1,8 +1,3 @@
-import Image from 'next/image'
-import { Inter } from 'next/font/google'
-
-const inter = Inter({ subsets: ['latin'] })
-
 export async function getServerSideProps() {
         return {
             redirect: {
@@ -10,4 +5,10 @@ export async function getServerSideProps() {
                 permanent: true,
             },
         }
-    }
+}
+export default function Home() {
+    return (
+    <div>
+        <h1>Redirecting...</h1>
+    </div>)
+}
