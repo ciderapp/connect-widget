@@ -1,10 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import {ref, onValue, off, set} from 'firebase/database';
+import {ref, onValue, set} from 'firebase/database';
 
 
 import { getDatabase } from "@firebase/database"
 import { getFirestore } from "@firebase/firestore"
-import {useFirebaseApp} from "reactfire";
 import { initializeApp } from "firebase/app";
 
 
@@ -23,7 +22,7 @@ const firebaseConfig = {
 export const runtime = 'nodejs'
 export default async function handler(
     req: NextApiRequest,
-    res: NextApiResponse<ResponseData>
+    res: NextApiResponse
 ) {
 
     // Use regular Firebase SDK functions to initialize the app
