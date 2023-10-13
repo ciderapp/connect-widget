@@ -13,9 +13,7 @@ class MyDocument extends Document {
 
     render() {
 
-        useEffect(() => {
-            setInterval(() => {
-                console.info(`
+        console.info(`
             ------------------\n
             Do not use our Firebase URLs in developing your RPC app!\n
             They can change at any time and break your app.\n\n
@@ -26,8 +24,6 @@ class MyDocument extends Document {
             https://${document.location.host}/api/[instanceId]
             ------------------\n
             `)
-            }, 10000);
-        }, []);
 
 
         return (
